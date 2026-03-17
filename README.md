@@ -102,11 +102,25 @@ print("Slope min/max:", np.nanmin(slope_arr), np.nanmax(slope_arr))  # 合理性
 pip install geopandas pandas numpy rioxarray rasterstats matplotlib shapely python-dotenv
 ```
 
+### 環境設定
+1. 複製環境變數範例檔案：
+   ```bash
+   cp .env.example .env
+   ```
+2. 編輯 `.env` 檔案，設定你的資料路徑和參數：
+   ```env
+   SLOPE_THRESHOLD=30      # 坡度閾值（度）
+   ELEVATION_LOW=50        # 低高程閾值（公尺）
+   BUFFER_HIGH=500         # 高風險緩衝距離（公尺）
+   TARGET_COUNTY=花蓮縣    # 目標縣市
+   ```
+
 ### 執行步驟
 1. 下載專案：`git clone https://github.com/chengzong1023/HW4`
 2. 進入專案目錄：`cd HW4/ARIA_V2_FIXED`
-3. 開啟 Jupyter Notebook：`jupyter notebook ARIA_v2_fixed.ipynb`
-4. 依序執行所有單元格
+3. 設定環境變數：`cp .env.example .env` 並編輯路徑
+4. 開啟 Jupyter Notebook：`jupyter notebook ARIA_v2_fixed.ipynb`
+5. 依序執行所有單元格
 
 ### 輸入資料
 - **鄉鎮界線**：TOWN_MOI_1140318.shp
@@ -128,12 +142,37 @@ pip install geopandas pandas numpy rioxarray rasterstats matplotlib shapely pyth
 
 ## 📝 參數設定
 
-可透過 `.env` 檔案自訂參數：
-```env
-SLOPE_THRESHOLD=30      # 坡度閾值（度）
-ELEVATION_LOW=50        # 低高程閾值（公尺）
-BUFFER_HIGH=500         # 高風險緩衝距離（公尺）
-TARGET_COUNTY=花蓮縣    # 目標縣市
+所有參數透過 `.env` 檔案管理，支援以下設定：
+
+### 風險評估參數
+- `SLOPE_THRESHOLD` - 坡度閾值（度），預設 30
+- `ELEVATION_LOW` - 低高程閾值（公尺），預設 50
+- `BUFFER_HIGH` - 高風險緩衝距離（公尺），預設 500
+
+### 分析區域設定
+- `TARGET_COUNTY` - 目標縣市，預設 "花蓮縣"
+
+### 資料路徑設定
+- `TOWNSHIP_PATH` - 鄉鎮界線 shapefile 路徑
+- `SHELTER_CSV_PATH` - 避難所 CSV 檔案路徑
+- `DEM_PATH` - DEM TIFF 檔案路徑
+- `WRA_URL` - 水利署河川資料 API URL
+
+### 視覺化設定
+- `HILLSHADE_AZIMUTH` - 山陰圖方位角，預設 315
+- `HILLSHADE_ALTITUDE` - 山陰圖高度角，預設 45
+
+### 程式碼中的環境變數使用
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SLOPE_THRESHOLD = float(os.getenv("SLOPE_THRESHOLD", 30))
+ELEVATION_LOW = float(os.getenv("ELEVATION_LOW", 50))
+BUFFER_HIGH = float(os.getenv("BUFFER_HIGH", 500))
+TARGET_COUNTY = os.getenv("TARGET_COUNTY", "花蓮縣")
 ```
 
 ## 🔍 驗證結果
