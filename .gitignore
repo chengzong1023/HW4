@@ -39,11 +39,11 @@ ENV/
 Thumbs.db
 
 # Output files (optional - comment out if you want to track results)
-*.json
-*.geojson
-*.png
-*.jpg
-*.tif
+# *.json
+# *.geojson
+# *.png
+# *.jpg
+# *.tif
 
 # Temporary files
 tmp/
