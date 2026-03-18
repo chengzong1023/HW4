@@ -87,6 +87,153 @@ print("Slope min/max:", np.nanmin(slope_arr), np.nanmax(slope_arr))  # 合理性
 - 使用正確的 spacing 參數確保坡度計算準確
 - 添加合理性檢查驗證坡度範圍（通常 0-90 度）
 
+### 4. **SSL 憑證驗證失敗** - 網路資料下載問題
+
+**問題描述**：
+- 嘗試從水利署 API 下載河川資料時出現 SSL 憑證驗證錯誤
+- `ssl.SSLCertVerificationError: certificate verify failed`
+- 在某些環境中（特別是公司網路或某些 Python 版本）經常發生
+
+**解決方案**：
+```python
+# 方案 1：使用本地已下載的檔案
+river_path = r"C:\Users\admin\Desktop\遙測\RIVERPOLY\riverpoly\riverpoly.shp"
+rivers = gpd.read_file(river_path).to_crs(epsg=3826)
+
+# 方案 2：如果必須從網路下載，添加 SSL 驗證跳過（不推薦生產環境）
+import ssl
+import urllib.request
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+```
+
+**關鍵改進**：
+- 優先使用本地資料檔案避免網路連線問題
+- 提供網路下載的備用方案
+- 增強程式碼的環境適應性
+
+### 5. **字符編碼問題** - CSV 檔案讀取錯誤
+
+**問題描述**：
+- 避難所 CSV 檔案包含中文字符，預設編碼可能不匹配
+- 出現 `UnicodeDecodeError` 或字符顯示為亂碼
+- 影響避難所名稱的正確顯示
+
+**解決方案**：
+```python
+# 嘗試多種編碼方式
+encodings = ['utf-8', 'gbk', 'big5', 'cp950']
+for encoding in encodings:
+    try:
+        shelter_df = pd.read_csv(shelter_csv_path, encoding=encoding)
+        print(f"Successfully read with encoding: {encoding}")
+        break
+    except UnicodeDecodeError:
+        continue
+
+# 確保坐標欄位正確轉換
+shelter_df["經度"] = pd.to_numeric(shelter_df["經度"], errors="coerce")
+shelter_df["緯度"] = pd.to_numeric(shelter_df["緯度"], errors="coerce")
+```
+
+**關鍵改進**：
+- 自動偵測並嘗試多種中文編碼
+- 使用 `errors="coerce"` 處理無效坐標值
+- 確保資料品質和穩定性
+
+### 6. **記憶體洩漏問題** - 大型陣列處理優化
+
+**問題描述**：
+- 長時間執行分析時記憶體使用持續增長
+- DEM 陣列和計算結果沒有適當釋放
+- 在 Colab 環境中容易觸發記憶體限制
+
+**解決方案**：
+```python
+# 手動清理不需要的變數
+import gc
+
+# 處理完 DEM 後釋放記憶體
+del dem, dem_arr
+gc.collect()
+
+# 使用 with 語句管理資源
+with rxr.open_rasterio(dem_path, masked=True) as dem:
+    dem_clip = dem.rio.clip(clip_boundary.geometry, clip_boundary.crs, drop=True)
+    # 處理邏輯...
+
+# 確保 masked array 正確處理
+if np.ma.isMaskedArray(dem_arr):
+    dem_arr = dem_arr.filled(np.nan)
+```
+
+**關鍵改進**：
+- 主動記憶體管理和垃圾回收
+- 使用上下文管理器確保資源釋放
+- 正確處理 NumPy masked arrays
+
+### 7. **坐標系統轉換精度問題** - EPSG:3826 vs EPSG:4326
+
+**問題描述**：
+- WGS84 (EPSG:4326) 轉換到 TWD97 (EPSG:3826) 時存在微小誤差
+- 影響河川距離計算的精確性
+- 在高精度分析中可能累積誤差
+
+**解決方案**：
+```python
+# 使用最新的坐標轉換參數
+shelters = shelters.to_crs("EPSG:3826", always_xy=True)
+
+# 驗證轉換精度
+original_bounds = shelters.to_crs("EPSG:4326").total_bounds
+converted_bounds = shelters.total_bounds
+print(f"Coordinate conversion accuracy: {np.abs(original_bounds - converted_bounds).max()}")
+
+# 確保所有向量資料使用相同的轉換方式
+townships = gpd.read_file(township_path).to_crs("EPSG:3826", always_xy=True)
+rivers = gpd.read_file(river_path).to_crs("EPSG:3826", always_xy=True)
+```
+
+**關鍵改進**：
+- 使用 `always_xy=True` 確保坐標順序一致性
+- 添加轉換精度驗證
+- 統一所有資料來源的轉換方式
+
+### 8. **視覺化渲染問題** - 大型地圖顯示優化
+
+**問題描述**：
+- 高解析度 DEM 山陰圖渲染耗時過長
+- Matplotlib 在處理大型陣列時記憶體不足
+- 輸出圖片檔案過大不利於分享
+
+**解決方案**：
+```python
+# 降低渲染解析度但保持品質
+downsample_factor = 2
+hillshade_downsampled = hillshade[::downsample_factor, ::downsample_factor]
+
+# 調整圖片大小和 DPI
+fig, ax = plt.subplots(figsize=(12, 16), dpi=100)
+
+# 使用適當的壓縮和品質設定
+plt.savefig("terrain_risk_map.png", 
+           dpi=200,  # 降低 DPI 但保持清晰度
+           bbox_inches="tight",
+           facecolor="white",
+           edgecolor="none",
+           optimize=True)  # PNG 優化
+
+# 清理不必要的中間變數
+del hillshade, grad_y, grad_x
+gc.collect()
+```
+
+**關鍵改進**：
+- 智能降採樣減少渲染負擔
+- 平衡圖片品質與檔案大小
+- 主動清理視覺化相關的記憶體
+
 ## 📊 技術改進總結
 
 | 問題類型 | 原始問題 | 修復方案 | 效果 |
@@ -94,6 +241,11 @@ print("Slope min/max:", np.nanmin(slope_arr), np.nanmax(slope_arr))  # 合理性
 | **Zonal Stats NaN** | CRS 未對齊導致統計失效 | 統一坐標系 + 正確 affine 參數 | 統計結果準確無 NaN |
 | **記憶體不足** | 載入完整 DEM | 智能裁切到目標區域 | 記憶體使用減少 80-90% |
 | **坡度計算錯誤** | gradient spacing 參數錯誤 | 動態取得像素解析度 | 坡度值合理 (0-90°) |
+| **SSL 憑證失敗** | 網路資料下載受阻 | 本地檔案備用方案 | 避免網路連線問題 |
+| **字符編碼錯誤** | 中文 CSV 亂碼 | 多重編碼自動偵測 | 正確顯示中文字符 |
+| **記憶體洩漏** | 大型陣列未釋放 | 主動記憶體管理 | 長期運行穩定性 |
+| **坐標轉換精度** | EPSG 轉換誤差 | always_xy + 精度驗證 | 提升距離計算準確性 |
+| **視覺化渲染** | 大型地圖處理慢 | 智能降採樣 + 優化 | 平衡品質與效能 |
 
 ## 🚀 使用方法
 
