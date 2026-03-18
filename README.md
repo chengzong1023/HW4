@@ -155,8 +155,33 @@ pip install geopandas pandas numpy rioxarray rasterstats matplotlib shapely pyth
 ### 資料路徑設定
 - `TOWNSHIP_PATH` - 鄉鎮界線 shapefile 路徑
 - `SHELTER_CSV_PATH` - 避難所 CSV 檔案路徑
-- `DEM_PATH` - DEM TIFF 檔案路徑
+- `DEM_PATH` - DEM TIFF 檔案路徑（Google Drive）
 - `WRA_URL` - 水利署河川資料 API URL
+
+### Google Drive 設定（Colab 使用）
+DEM 檔案建議放在 Google Drive 中以避免 GitHub 檔案大小限制：
+
+1. **下載 DEM 檔案**：
+   - 從 [data.gov.tw](https://data.gov.tw/dataset/176927) 下載台灣 20m DEM
+   - 裁切花蓮縣區域並命名為 `dem_20m_hualien.tif`
+
+2. **上傳到 Google Drive**：
+   ```bash
+   # 在 Google Drive 中建立資料夾結構
+   MyDrive/
+   └── dem_20m_hualien.tif
+   ```
+
+3. **在 Colab 中掛載 Google Drive**：
+   ```python
+   from google.colab import drive
+   drive.mount('/content/drive')
+   ```
+
+4. **更新 .env 路徑**：
+   ```env
+   DEM_PATH=/content/drive/MyDrive/dem_20m_hualien.tif
+   ```
 
 ### 視覺化設定
 - `HILLSHADE_AZIMUTH` - 山陰圖方位角，預設 315
