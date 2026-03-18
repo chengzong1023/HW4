@@ -119,7 +119,7 @@ pip install geopandas pandas numpy rioxarray rasterstats matplotlib shapely pyth
 1. 下載專案：`git clone https://github.com/chengzong1023/HW4`
 2. 進入專案目錄：`cd HW4/ARIA_V2_FIXED`
 3. 設定環境變數：`cp .env.example .env` 並編輯路徑
-4. 開啟 Jupyter Notebook：`jupyter notebook ARIA_v2_fixed.ipynb`
+4. 開啟 Jupyter Notebook：`jupyter notebook ARIA_v2.ipynb`
 5. 依序執行所有單元格
 
 ### 輸入資料
